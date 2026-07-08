@@ -1,7 +1,7 @@
 {
     "name": "ki-linienfolger",
-    "version": "0.0.1",
-    "description": "Lernender Linienfolger: ein neuronales Netz wird direkt auf dem Calliope mini 3 trainiert (Sammeln, Lernen, Fahren).",
+    "version": "0.0.2",
+    "description": "Lernender Linienfolger: ein neuronales Netz wird trainiert.",
     "license": "MIT",
     "dependencies": {
         "core": "*",
