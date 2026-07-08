@@ -1,0 +1,31 @@
+{
+    "name": "ki-linienfolger",
+    "version": "0.0.1",
+    "description": "Lernender Linienfolger: ein neuronales Netz wird direkt auf dem Calliope mini 3 trainiert (Sammeln, Lernen, Fahren).",
+    "license": "MIT",
+    "dependencies": {
+        "core": "*",
+        "motion-kit": "github:https://github.com/tinysuperlab/MotionKitV2"
+    },
+    "files": [
+        "main.ts",
+        "README.md",
+        "_locales/en/ki-linienfolger-strings.json",
+        "_locales/es/ki-linienfolger-strings.json",
+        "_locales/fr/ki-linienfolger-strings.json",
+        "_locales/it/ki-linienfolger-strings.json",
+        "_locales/el/ki-linienfolger-strings.json",
+        "_locales/nl/ki-linienfolger-strings.json"
+    ],
+    "testFiles": [
+        "test.ts"
+    ],
+    "targetVersions": {
+        "target": "4.0.35",
+        "targetId": "calliopemini"
+    },
+    "supportedTargets": [
+        "calliopemini"
+    ],
+    "preferredEditor": "tsprj"
+}
