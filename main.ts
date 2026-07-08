@@ -15,7 +15,7 @@
  * ki-linienfolger-strings.json.
  */
 
-//% weight=100 color="#00A15A" icon="" block="KI Linienfolger"
+//% weight=100 color="#00A15A" icon="f10c" block="KI Linienfolger"
 //% groups="['Einfach', 'Werkstatt', 'Anzeige', 'Einstellungen']"
 namespace kiLinie {
 
@@ -53,6 +53,9 @@ namespace kiLinie {
 
     let letzterFehler = 1
     let initialisiert = false
+
+    let maxProSituation = 5
+    let proSituation: number[] = [0, 0, 0, 0]
 
     // ---------------------------------------------------------------
     // Hardware-Adapter - einzige Stelle mit MotionKit-Bezug (maqueen).
@@ -180,6 +183,31 @@ namespace kiLinie {
         return historie.slice(0)
     }
 
+    // Robustes Regel-Fahren zum Sammeln: scharfe Kurven (inneres Rad stoppt),
+    // damit der Roboter beim Sammeln besser auf der Linie bleibt.
+    function fahreRegel(l: boolean, r: boolean): void {
+        let schnell = grundTempo
+        if (l && !r) {
+            maqueen.motorRun(maqueen.Motors.M1, maqueen.Dir.CW, 0)
+            maqueen.motorRun(maqueen.Motors.M2, maqueen.Dir.CW, schnell)
+        } else if (r && !l) {
+            maqueen.motorRun(maqueen.Motors.M1, maqueen.Dir.CW, schnell)
+            maqueen.motorRun(maqueen.Motors.M2, maqueen.Dir.CW, 0)
+        } else {
+            maqueen.motorRun(maqueen.Motors.M1, maqueen.Dir.CW, schnell)
+            maqueen.motorRun(maqueen.Motors.M2, maqueen.Dir.CW, schnell)
+        }
+    }
+
+    // Zeigt die Abdeckung der 4 Situationen auf den 4 LED-Ecken.
+    function zeigeAbdeckung(): void {
+        basic.clearScreen()
+        if (proSituation[0] > 0) led.plot(0, 0)
+        if (proSituation[1] > 0) led.plot(4, 0)
+        if (proSituation[2] > 0) led.plot(0, 4)
+        if (proSituation[3] > 0) led.plot(4, 4)
+    }
+
     function zeigePfeil(l: number, r: number): void {
         // Konfidenz = wie deutlich unterscheiden sich die beiden Ausgaben.
         // Ein blasser Pfeil bedeutet: das Netz ist unsicher.
@@ -214,9 +242,27 @@ namespace kiLinie {
         let ziel = regelZiel(l, r)
         beispieleX.push(inp)
         beispieleD.push(ziel)
-        fahre(ziel[0], ziel[1])
+        fahreRegel(l, r)
         led.plotBarGraph(beispieleX.length, 60)
-        basic.pause(100)
+        basic.pause(40)
+    }
+
+    //% blockId=kilinie_ausgewogen block="sammle ausgewogen"
+    //% weight=95 group="Einfach"
+    export function sammleAusgewogen(): void {
+        if (!initialisiert) initNetz()
+        let l = leseLinks()
+        let r = leseRechts()
+        // Situation 0..3 aus den beiden Sensoren; jede nur begrenzt oft speichern.
+        let idx = (l ? 1 : 0) + (r ? 2 : 0)
+        if (proSituation[idx] < maxProSituation) {
+            beispieleX.push(baueEingabe(l, r))
+            beispieleD.push(regelZiel(l, r))
+            proSituation[idx] += 1
+        }
+        fahreRegel(l, r)
+        zeigeAbdeckung()
+        basic.pause(40)
     }
 
     //% blockId=kilinie_trainiere block="trainiere das Netz %schritte Schritte"
@@ -251,7 +297,7 @@ namespace kiLinie {
         vorwaerts(inp)
         fahre(yVec[0], yVec[1])
         zeigePfeil(yVec[0], yVec[1])
-        basic.pause(80)
+        basic.pause(40)
     }
 
     //% blockId=kilinie_reset block="Netz und Beispiele zurücksetzen"
@@ -259,9 +305,16 @@ namespace kiLinie {
     export function zuruecksetzen(): void {
         beispieleX = []
         beispieleD = []
+        proSituation = [0, 0, 0, 0]
         initNetz()
         maqueen.motorStop(maqueen.Motors.All)
         basic.clearScreen()
+    }
+
+    //% blockId=kilinie_anhalten block="anhalten"
+    //% weight=68 group="Einfach"
+    export function anhalten(): void {
+        maqueen.motorStop(maqueen.Motors.All)
     }
 
     // ===============================================================
@@ -418,5 +471,11 @@ namespace kiLinie {
     //% v.defl=40 v.min=0 v.max=255 weight=15 group="Einstellungen"
     export function setzeGrundtempo(v: number): void {
         grundTempo = v
+    }
+
+    //% blockId=kilinie_maxprosit block="höchstens %n Beispiele je Situation"
+    //% n.defl=5 n.min=1 n.max=50 weight=12 group="Einstellungen"
+    export function setzeMaxProSituation(n: number): void {
+        maxProSituation = n
     }
 }
